@@ -427,12 +427,15 @@
   </div>
 
   <!-- Navigation Tabs -->
-  <div class="nav-tabs">
+  <div class="nav-tabs" style="grid-template-columns: 1fr 1fr 1.2fr;">
     <button class="nav-tab active" id="tab-btn-machine">
-      🎮 Machine Control
+      🎮 Machine
     </button>
     <button class="nav-tab" id="tab-btn-drills">
-      ⚡ Custom Drills & Studio
+      ⚡ Drills
+    </button>
+    <button class="nav-tab" id="tab-btn-sim" style="color: #22c55e;">
+      🤖 Virtual Sim
     </button>
   </div>
 
@@ -658,6 +661,78 @@
     </div>
   </div>
 
+  <!-- ============================================================== -->
+  <!-- TAB 3: VIRTUAL MACHINE SIMULATOR (Zero-Risk Digital Twin)      -->
+  <!-- ============================================================== -->
+  <div class="tab-page" id="tab-page-sim">
+    
+    <!-- Virtual Sim Status Banner -->
+    <div class="adjuster-card" style="border-color: var(--accent); background: #062a1c;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-weight: 800; font-size: 0.95rem; color: #4ade80;">🤖 Siboasi B2202A Virtual Twin</span>
+          <div style="font-size: 0.75rem; color: #86efac; margin-top: 2px;">Test all controls & drills with zero court cost</div>
+        </div>
+        <button class="btn btn-accent btn-sm" id="btn-toggle-sim-mode">Sim: ACTIVE</button>
+      </div>
+    </div>
+
+    <!-- Court Trajectory Visualizer -->
+    <div class="adjuster-card" style="padding: 10px; text-align: center;">
+      <div class="adjuster-title">
+        <span>Court Trajectory & Robot View</span>
+        <span id="sim-shots-count" style="color: var(--primary);">Shots Fired: 0</span>
+      </div>
+      <div style="position: relative; display: inline-block; border-radius: 8px; overflow: hidden; border: 2px solid #334155;">
+        <canvas id="simCanvas" width="340" height="480" style="display: block; background: #064e3b;"></canvas>
+      </div>
+    </div>
+
+    <!-- Live Motor Telemetry -->
+    <div class="adjuster-card">
+      <div class="adjuster-title">
+        <span>Virtual Actuator Telemetry</span>
+        <span id="sim-hud-status" style="color: #4ade80; font-weight: 700;">READY</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);">
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Turret Angle</span>
+          <span id="sim-val-angle" style="font-size: 1rem; font-weight: 800; color: var(--primary);">Center (30)</span>
+        </div>
+        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);">
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Elevation Pitch</span>
+          <span id="sim-val-height" style="font-size: 1rem; font-weight: 800; color: #4ade80;">Level 5 / 20</span>
+        </div>
+        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);">
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Wheel Velocity</span>
+          <span id="sim-val-speed" style="font-size: 1rem; font-weight: 800; color: #f59e0b;">10 / 20</span>
+        </div>
+        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);">
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Telescopic Lift</span>
+          <span id="sim-val-lift" style="font-size: 1rem; font-weight: 800; color: #c084fc;">Level 1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Packet Inspector -->
+    <div class="adjuster-card">
+      <div class="adjuster-title">
+        <span>Raw BLE Packet Inspector</span>
+        <span id="sim-packet-badge" style="font-size: 0.7rem; font-weight: 700; color: #4ade80; background: #064e3b; padding: 2px 6px; border-radius: 4px;">Awaiting Packet</span>
+      </div>
+      <div style="background: #090d16; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 0.75rem; border: 1px solid var(--card-border);">
+        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 4px;">RAW HEX BYTES:</div>
+        <div id="sim-raw-hex" style="color: #38bdf8; word-break: break-all; font-weight: 700;">-- -- -- -- -- -- -- -- -- --</div>
+        <div style="border-top: 1px solid #1e293b; margin-top: 6px; padding-top: 6px; color: var(--text-muted); font-size: 0.7rem; display: flex; justify-content: space-between;">
+          <span>Opcode: <b id="sim-frame-opcode" style="color: #facc15;">--</b></span>
+          <span>Framing: <b id="sim-frame-check" style="color: #4ade80;">--</b></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
   <script>
     // ==============================================================
     // SIBOASI BLE PROTOCOL ENGINE (Self-Contained Mobile Driver)
@@ -736,8 +811,9 @@
         this.writeChar = null;
         this.notifyChar = null;
         this.isConnected = false;
-        this.batteryLevel = null;
+        this.batteryLevel = 95;
         this.onStatusChange = null;
+        this.isVirtualMode = false;
       }
 
       isSupported() {
@@ -745,6 +821,12 @@
       }
 
       async connect() {
+        if (this.isVirtualMode) {
+          this.isConnected = true;
+          this._updateStatus('connected', 'Connected: Siboasi B2202A (Virtual Twin)');
+          return 'Virtual-B2202A';
+        }
+
         if (!this.isSupported()) {
           throw new Error("Web Bluetooth is not supported on this browser. On Samsung/Android, please open this page in Google Chrome. On iPhone, open in the free Bluefy browser.");
         }
@@ -833,8 +915,14 @@
       }
 
       async sendPacket(uint8Array) {
+        if (this.isVirtualMode || !this.isConnected) {
+          if (window.virtualFeeder) {
+            window.virtualFeeder.receivePacket(uint8Array);
+          }
+          if (this.isVirtualMode) return;
+        }
         if (!this.isConnected || !this.writeChar) {
-          throw new Error("Not connected to machine!");
+          throw new Error("Not connected to machine! Please tap Connect first.");
         }
         if (this.writeChar.writeValueWithoutResponse) {
           await this.writeChar.writeValueWithoutResponse(uint8Array);
@@ -855,9 +943,267 @@
           this.onStatusChange({ 
             state, 
             message, 
-            deviceName: this.device ? this.device.name : null,
+            deviceName: this.device ? this.device.name : (this.isVirtualMode ? 'Virtual-B2202A' : null),
             battery: this.batteryLevel
           });
+        }
+      }
+    }
+
+    // ==============================================================
+    // VIRTUAL HARDWARE SIMULATOR & PACKET VALIDATOR
+    // ==============================================================
+    class VirtualSiboasiFeeder {
+      constructor() {
+        this.canvas = document.getElementById('simCanvas');
+        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
+        this.horizontal = 30; // 1-60 (30 is center)
+        this.height = 5;      // 1-20
+        this.speed = 10;      // 1-20
+        this.frequency = 3;
+        this.lift = 1;
+        this.mode = 'IDLE';
+        this.isFeeding = false;
+        this.shotsFired = 0;
+        this.shuttles = [];
+
+        if (this.canvas) {
+          this._startRenderLoop();
+        }
+      }
+
+      receivePacket(bytes) {
+        const len = bytes.length;
+        const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        
+        const rawHexEl = document.getElementById('sim-raw-hex');
+        if (rawHexEl) rawHexEl.textContent = hex;
+
+        const start = bytes[0];
+        const end = bytes[len - 1];
+        const opcode = bytes[8];
+
+        const opcodeNames = {
+          0xA0: 'STOP / PAUSE',
+          0xAB: 'FIXED POINT SHOT',
+          0xA8: 'FULL RANDOM',
+          0xAF: 'CROSS LINE',
+          0xAD: 'HORIZONTAL SWEEP',
+          0xA4: 'COMBINATION',
+          0xC1: 'READ BATTERY'
+        };
+
+        const opcodeEl = document.getElementById('sim-frame-opcode');
+        if (opcodeEl) opcodeEl.textContent = `0x${opcode.toString(16).toUpperCase()} (${opcodeNames[opcode] || 'UNKNOWN'})`;
+
+        const badgeEl = document.getElementById('sim-packet-badge');
+        const checkEl = document.getElementById('sim-frame-check');
+
+        const isValid = (start === 0xEF && end === 0xED && bytes[4] === 0x04 && bytes[5] === 0x81 && bytes[6] === 0x01);
+        if (isValid) {
+          if (badgeEl) {
+            badgeEl.textContent = '✅ VALID SIBOASI PACKET';
+            badgeEl.style.background = '#064e3b';
+            badgeEl.style.color = '#4ade80';
+          }
+          if (checkEl) checkEl.textContent = 'OK (0xEF .. 0xED)';
+        } else {
+          if (badgeEl) {
+            badgeEl.textContent = '❌ INVALID PACKET';
+            badgeEl.style.background = '#7f1d1d';
+            badgeEl.style.color = '#fca5a5';
+          }
+          if (checkEl) checkEl.textContent = 'FAIL';
+          return;
+        }
+
+        // Opcode behaviors
+        if (opcode === 0xA0) {
+          this.isFeeding = false;
+          this.mode = 'STOPPED';
+          const hudStatus = document.getElementById('sim-hud-status');
+          if (hudStatus) {
+            hudStatus.textContent = 'STOPPED (Motors Halted)';
+            hudStatus.style.color = '#ef4444';
+          }
+        } else if (opcode === 0xAB || opcode === 0xA8 || opcode === 0xAF || opcode === 0xAD) {
+          this.isFeeding = true;
+          this.horizontal = bytes[9];
+          this.height = bytes[10];
+          this.speed = bytes[12];
+          this.frequency = bytes[13];
+          this.lift = bytes[14] || 1;
+          this.mode = opcodeNames[opcode] || 'ACTIVE';
+
+          // Update HUD numbers
+          const angleEl = document.getElementById('sim-val-angle');
+          const heightEl = document.getElementById('sim-val-height');
+          const speedEl = document.getElementById('sim-val-speed');
+          const liftEl = document.getElementById('sim-val-lift');
+          const hudStatus = document.getElementById('sim-hud-status');
+
+          if (angleEl) angleEl.textContent = `${this.horizontal} (Center=30)`;
+          if (heightEl) heightEl.textContent = `Level ${this.height} / 20`;
+          if (speedEl) speedEl.textContent = `${this.speed} / 20`;
+          if (liftEl) liftEl.textContent = `Level ${this.lift}`;
+          if (hudStatus) {
+            hudStatus.textContent = `FEEDING: ${this.mode}`;
+            hudStatus.style.color = '#4ade80';
+          }
+
+          // Launch virtual shuttlecock onto canvas
+          this._launchShuttle();
+        }
+      }
+
+      _launchShuttle() {
+        if (!this.canvas) return;
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        const padX = 20;
+        const cW = W - padX * 2;
+
+        const targetX = padX + ((this.horizontal - 12) / (48 - 12)) * cW;
+        const targetY = H * 0.5 - (this.height / 14) * (H * 0.40);
+        const duration = Math.max(0.5, 1.5 - (this.speed / 20) * 0.9);
+
+        this.shuttles.push({
+          startX: W / 2,
+          startY: H - 30,
+          targetX, targetY,
+          startTime: performance.now(),
+          duration: duration * 1000,
+          apexZ: 25 + (this.height / 20) * 75,
+        });
+
+        this.shotsFired++;
+        const shotsEl = document.getElementById('sim-shots-count');
+        if (shotsEl) shotsEl.textContent = `Shots Fired: ${this.shotsFired}`;
+      }
+
+      _startRenderLoop() {
+        const render = (now) => {
+          this._drawCourt();
+          this._updateShuttles(now);
+          requestAnimationFrame(render);
+        };
+        requestAnimationFrame(render);
+      }
+
+      _drawCourt() {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        // Floor
+        ctx.fillStyle = '#064e3b';
+        ctx.fillRect(0, 0, W, H);
+
+        const padX = 20;
+        const padY = 20;
+        const cW = W - padX * 2;
+        const cH = H - padY * 2;
+
+        // Doubles border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(padX, padY, cW, cH);
+
+        // Net Line
+        const netY = padY + cH / 2;
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(padX - 4, netY);
+        ctx.lineTo(padX + cW + 4, netY);
+        ctx.stroke();
+
+        // Short service line
+        const shortServiceOffset = cH * 0.14;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(padX, netY - shortServiceOffset);
+        ctx.lineTo(padX + cW, netY - shortServiceOffset);
+        ctx.moveTo(padX, netY + shortServiceOffset);
+        ctx.lineTo(padX + cW, netY + shortServiceOffset);
+        ctx.stroke();
+
+        // Draw Feeder Robot at baseline center
+        this._drawRobot(padX + cW / 2, padY + cH - 6);
+      }
+
+      _drawRobot(x, y) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Base
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-20, -12, 40, 24, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // Turret Angle
+        const angleDeg = ((this.horizontal - 30) / 30) * 35;
+        const angleRad = (angleDeg * Math.PI) / 180;
+        ctx.rotate(angleRad);
+
+        // Turret head
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nozzle barrel
+        ctx.fillStyle = this.isFeeding ? '#22c55e' : '#38bdf8';
+        ctx.fillRect(-3, -18, 6, 12);
+
+        // Flywheels
+        ctx.fillStyle = this.isFeeding ? '#f59e0b' : '#64748b';
+        ctx.fillRect(-8, -16, 3, 8);
+        ctx.fillRect(5, -16, 3, 8);
+
+        ctx.restore();
+      }
+
+      _updateShuttles(now) {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        for (let i = this.shuttles.length - 1; i >= 0; i--) {
+          const s = this.shuttles[i];
+          const p = Math.min(1, (now - s.startTime) / s.duration);
+          const curX = s.startX + (s.targetX - s.startX) * p;
+          const curY = s.startY + (s.targetY - s.startY) * p;
+          const curZ = Math.sin(p * Math.PI) * s.apexZ;
+
+          // Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.beginPath();
+          ctx.ellipse(curX, curY, 5 * (1 - curZ / 120), 2.5 * (1 - curZ / 120), 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Shuttle body
+          const renderY = curY - curZ;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(curX, renderY, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Landing impact
+          if (p >= 1) {
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(s.targetX, s.targetY, 12, 0, Math.PI * 2);
+            ctx.stroke();
+            this.shuttles.splice(i, 1);
+          }
         }
       }
     }
@@ -956,22 +1302,40 @@
     // UI Bindings - Tabs
     const tabBtnMachine = document.getElementById('tab-btn-machine');
     const tabBtnDrills = document.getElementById('tab-btn-drills');
+    const tabBtnSim = document.getElementById('tab-btn-sim');
     const tabPageMachine = document.getElementById('tab-page-machine');
     const tabPageDrills = document.getElementById('tab-page-drills');
+    const tabPageSim = document.getElementById('tab-page-sim');
+    const btnToggleSimMode = document.getElementById('btn-toggle-sim-mode');
 
-    tabBtnMachine.addEventListener('click', () => {
-      tabBtnMachine.classList.add('active');
-      tabBtnDrills.classList.remove('active');
-      tabPageMachine.classList.add('active');
-      tabPageDrills.classList.remove('active');
+    function setActiveTab(btn, page) {
+      [tabBtnMachine, tabBtnDrills, tabBtnSim].forEach(b => b && b.classList.remove('active'));
+      [tabPageMachine, tabPageDrills, tabPageSim].forEach(p => p && p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      if (page) page.classList.add('active');
+    }
+
+    tabBtnMachine.addEventListener('click', () => setActiveTab(tabBtnMachine, tabPageMachine));
+    tabBtnDrills.addEventListener('click', () => setActiveTab(tabBtnDrills, tabPageDrills));
+    tabBtnSim.addEventListener('click', () => setActiveTab(tabBtnSim, tabPageSim));
+
+    btnToggleSimMode.addEventListener('click', () => {
+      client.isVirtualMode = !client.isVirtualMode;
+      if (client.isVirtualMode) {
+        btnToggleSimMode.textContent = 'Sim: ACTIVE';
+        btnToggleSimMode.className = 'btn btn-accent btn-sm';
+        client.isConnected = true;
+        client._updateStatus('connected', 'Connected: Siboasi B2202A (Virtual Twin)');
+      } else {
+        btnToggleSimMode.textContent = 'Mode: REAL BLE';
+        btnToggleSimMode.className = 'btn btn-secondary btn-sm';
+        client.isConnected = false;
+        client._updateStatus('disconnected', 'Disconnected (Real BLE Mode)');
+      }
     });
 
-    tabBtnDrills.addEventListener('click', () => {
-      tabBtnDrills.classList.add('active');
-      tabBtnMachine.classList.remove('active');
-      tabPageDrills.classList.add('active');
-      tabPageMachine.classList.remove('active');
-    });
+    // Initialize virtual feeder engine
+    window.virtualFeeder = new VirtualSiboasiFeeder();
 
     // BLE Status Callbacks
     client.onStatusChange = ({ state, message, battery }) => {
