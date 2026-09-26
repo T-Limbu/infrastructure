@@ -915,7 +915,7 @@
       }
 
       async sendPacket(uint8Array) {
-        // Relay to local sync server (for split-screen / phone-to-PC testing)
+        // Always relay to local sync server (for phone-to-PC dual-screen simulator testing)
         try {
           fetch('/api/send', {
             method: 'POST',
@@ -924,19 +924,22 @@
           }).catch(() => {});
         } catch (_) {}
 
-        if (this.isVirtualMode || !this.isConnected) {
-          if (window.virtualFeeder) {
-            window.virtualFeeder.receivePacket(uint8Array);
+        // Always relay to embedded virtual feeder twin if present
+        if (window.virtualFeeder) {
+          window.virtualFeeder.receivePacket(uint8Array);
+        }
+
+        // If physically connected via Web Bluetooth, transmit over BLE GATT
+        if (this.isConnected && this.writeChar) {
+          try {
+            if (this.writeChar.writeValueWithoutResponse) {
+              await this.writeChar.writeValueWithoutResponse(uint8Array);
+            } else {
+              await this.writeChar.writeValue(uint8Array);
+            }
+          } catch (bleErr) {
+            console.warn("BLE Write error:", bleErr);
           }
-          if (this.isVirtualMode) return;
-        }
-        if (!this.isConnected || !this.writeChar) {
-          throw new Error("Not connected to machine! Please tap Connect first.");
-        }
-        if (this.writeChar.writeValueWithoutResponse) {
-          await this.writeChar.writeValueWithoutResponse(uint8Array);
-        } else {
-          await this.writeChar.writeValue(uint8Array);
         }
       }
 
@@ -1390,7 +1393,6 @@
     }
 
     async function pushCurrentMachineCommand() {
-      if (!client.isConnected) return;
       try {
         if (machineState.mode === 'suiji') {
           await client.sendRandom(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
@@ -1402,7 +1404,7 @@
           await client.sendFixedShot(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
         }
       } catch (e) {
-        console.error("BLE Send failed:", e);
+        console.error("Command Send error:", e);
       }
     }
 
@@ -1454,7 +1456,7 @@
     });
 
     document.getElementById('btn-machine-pause').addEventListener('click', async () => {
-      if (client.isConnected) await client.emergencyStop();
+      try { await client.emergencyStop(); } catch (_) {}
     });
 
     // Court Grid Selection
@@ -1509,10 +1511,12 @@
         }
       });
 
-      // Send to B2202A
-      if (client.isConnected) {
+      // Send to B2202A / Simulator Relay
+      try {
         const horiz = step.pos ? (step.pos % 3 === 1 ? 18 : (step.pos % 3 === 0 ? 42 : 30)) : 30;
         await client.sendFixedShot(horiz, step.height, step.speed, 3, 1);
+      } catch (err) {
+        console.warn("Drill step send notice:", err);
       }
 
       // Countdown visual
