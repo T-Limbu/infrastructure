@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Siboasi B2202A Court Commander Pro</title>
+  <style>
+    :root {
+      --bg-color: #0b1120;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --accent: #22c55e;
+      --accent-hover: #16a34a;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --warning: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --court-green: #064e3b;
+      --court-lines: #ffffff;
+      --court-highlight: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 10px;
+      padding-bottom: 70px;
+    }
+
+    /* Top Nav / Connection Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .brand h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    .status-dot.connected {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .status-dot.connecting {
+      background: var(--warning);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.3; }
+      to { opacity: 1; }
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .nav-tab {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+      background: var(--card-bg);
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Tab Content Pages */
+    .tab-page {
+      display: none;
+    }
+
+    .tab-page.active {
+      display: block;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary { background: var(--primary); color: #0f172a; }
+    .btn-accent { background: var(--accent); color: #0f172a; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-secondary { background: #334155; color: var(--text); }
+    .btn-warning { background: var(--warning); color: #0f172a; }
+
+    .btn-lg {
+      padding: 16px 20px;
+      font-size: 1.1rem;
+      border-radius: 12px;
+    }
+
+    .btn-full { width: 100%; }
+
+    /* Emergency Stop Bar */
+    .emergency-bar {
+      margin-bottom: 12px;
+    }
+
+    /* Live Adjusters (Stepper Controls) */
+    .adjuster-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .adjuster-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stepper-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stepper-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      width: 80px;
+    }
+
+    .stepper-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #334155;
+      color: white;
+      border: none;
+      font-size: 1.4rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stepper-btn:active { background: #475569; }
+
+    .stepper-val {
+      flex: 1;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* Presets Grid */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .preset-btn {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+
+    .preset-btn:active, .preset-btn.active {
+      background: #0284c7;
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .preset-icon {
+      font-size: 1.3rem;
+    }
+
+    /* Court Visualizer */
+    .court-container {
+      background: var(--court-green);
+      border: 3px solid var(--court-lines);
+      border-radius: 10px;
+      height: 200px;
+      position: relative;
+      margin: 10px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 6px;
+    }
+
+    .court-net {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: #facc15;
+      box-shadow: 0 0 6px #facc15;
+    }
+
+    .court-cell {
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.9);
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .court-cell:active, .court-cell.selected {
+      background: rgba(56, 189, 248, 0.4);
+      border-color: var(--primary);
+    }
+
+    .court-cell.current-target {
+      background: rgba(34, 197, 94, 0.8) !important;
+      color: white;
+      box-shadow: 0 0 14px var(--accent);
+      transform: scale(1.02);
+    }
+
+    /* Drill Studio Cards */
+    .drill-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .drill-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+    .drill-card p { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      padding: 14px;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+      max-width: 520px;
+      margin: 10px auto;
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .form-control {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .step-item {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .countdown-bar {
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .countdown-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header / BLE Connection Bar -->
+  <header>
+    <div class="brand">
+      <h1>🏸 B2202A Commander Pro</h1>
+      <span id="conn-subtext">Disconnected (SS-B2202A)</span>
+    </div>
+    <div class="conn-status">
+      <div class="status-dot" id="status-dot"></div>
+      <button class="btn btn-primary" id="btn-connect">Connect</button>
+    </div>
+  </header>
+
+  <!-- Big Emergency Stop Button -->
+  <div class="emergency-bar">
+    <button class="btn btn-danger btn-lg btn-full" id="btn-stop">
+      🛑 EMERGENCY STOP / PAUSE
+    </button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-btn-machine">
+      🎮 Machine Control
+    </button>
+    <button class="nav-tab" id="tab-btn-drills">
+      ⚡ Custom Drills & Studio
+    </button>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- TAB 1: MACHINE CONTROL (100% Official App Features in English)  -->
+  <!-- ============================================================== -->
+  <div class="tab-page active" id="tab-page-machine">
+
+    <!-- Live Court Map -->
+    <div class="adjuster-card" style="padding-bottom: 8px;">
+      <div class="adjuster-title">
+        <span>Target Placement on Court</span>
+        <span id="selected-court-pos">Position: Center</span>
+      </div>
+      <div class="court-container" id="court-grid">
+        <div class="court-net"></div>
+        <div class="court-cell" data-pos="1"><span>Net L</span></div>
+        <div class="court-cell" data-pos="2"><span>Net C</span></div>
+        <div class="court-cell" data-pos="3"><span>Net R</span></div>
+        <div class="court-cell" data-pos="4"><span>Mid L</span></div>
+        <div class="court-cell selected" data-pos="5"><span>Center</span></div>
+        <div class="court-cell" data-pos="6"><span>Mid R</span></div>
+        <div class="court-cell" data-pos="7"><span>Deep L</span></div>
+        <div class="court-cell" data-pos="8"><span>Deep C</span></div>
+        <div class="court-cell" data-pos="9"><span>Deep R</span></div>
+      </div>
+    </div>
+
+    <!-- Official Machine Preset Modes -->
+    <div class="adjuster-card">
+      <div class="adjuster-title">
+        <span>Official Machine Modes (Original Features)</span>
+        <span id="active-mode-label">Mode: Fixed Point</span>
+      </div>
+
+      <div class="presets-grid">
+        <button class="preset-btn active" data-mode="dingdian">
+          <span class="preset-icon">🎯</span>
+          <span>Fixed Point</span>
+        </button>
+        <button class="preset-btn" data-mode="suiji">
+          <span class="preset-icon">🔀</span>
+          <span>Full Random</span>
+        </button>
+        <button class="preset-btn" data-mode="shuiping">
+          <span class="preset-icon">↔️</span>
+          <span>Horizontal Sweep</span>
+        </button>
+        <button class="preset-btn" data-mode="jiaocha">
+          <span class="preset-icon">⚔️</span>
+          <span>Cross-Line (2-Line)</span>
+        </button>
+        <button class="preset-btn" data-mode="qianhou">
+          <span class="preset-icon">🔄</span>
+          <span>Front & Back</span>
+        </button>
+        <button class="preset-btn" data-mode="sifang">
+          <span class="preset-icon">🔲</span>
+          <span>Four-Corner Drill</span>
+        </button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button class="btn btn-accent btn-lg" id="btn-machine-feed">
+          ▶ START FEEDING
+        </button>
+        <button class="btn btn-warning btn-lg" id="btn-machine-pause">
+          ⏸ PAUSE
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Fine Adjustments (Steppers) -->
+    <div class="adjuster-card">
+      <div class="adjuster-title">
+        <span>Live Parameter Adjustments</span>
+        <span id="battery-indicator">🔋 Battery: --%</span>
+      </div>
+
+      <!-- Speed (sd) -->
+      <div class="stepper-row">
+        <div class="stepper-label">Speed</div>
+        <button class="stepper-btn" id="sd-sub">−</button>
+        <div class="stepper-val" id="sd-val">10 / 20</div>
+        <button class="stepper-btn" id="sd-add">+</button>
+      </div>
+
+      <!-- Height / Elevation (cz) -->
+      <div class="stepper-row">
+        <div class="stepper-label">Height</div>
+        <button class="stepper-btn" id="cz-sub">−</button>
+        <div class="stepper-val" id="cz-val">5 / 20</div>
+        <button class="stepper-btn" id="cz-add">+</button>
+      </div>
+
+      <!-- Horizontal Angle (sp) -->
+      <div class="stepper-row">
+        <div class="stepper-label">Direction</div>
+        <button class="stepper-btn" id="sp-sub">◀ L</button>
+        <div class="stepper-val" id="sp-val">Center (30)</div>
+        <button class="stepper-btn" id="sp-add">R ▶</button>
+      </div>
+
+      <!-- Feed Interval / Frequency (pl) -->
+      <div class="stepper-row">
+        <div class="stepper-label">Frequency</div>
+        <button class="stepper-btn" id="pl-sub">−</button>
+        <div class="stepper-val" id="pl-val">3.0s</div>
+        <button class="stepper-btn" id="pl-add">+</button>
+      </div>
+
+      <!-- Telescopic Lift (sj) -->
+      <div class="stepper-row">
+        <div class="stepper-label">Lift (SJ)</div>
+        <button class="stepper-btn" id="sj-sub">▼</button>
+        <div class="stepper-val" id="sj-val">Level 1</div>
+        <button class="stepper-btn" id="sj-add">▲</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- TAB 2: CUSTOM DRILLS & STUDIO (Added Multi-Step Sequencer)     -->
+  <!-- ============================================================== -->
+  <div class="tab-page" id="tab-page-drills">
+
+    <!-- Active Sequencer View -->
+    <div class="adjuster-card" style="border-color: var(--primary);">
+      <div class="adjuster-title">
+        <span id="active-drill-name" style="color: var(--primary);">Active Drill</span>
+        <span id="drill-round-counter">Round 0 / ∞</span>
+      </div>
+
+      <div style="background: #090d16; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: center;">
+        <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;" id="active-step-title">
+          Ready to Start
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;" id="active-step-details">
+          Select or Create a Drill Below
+        </div>
+        <div class="countdown-bar">
+          <div class="countdown-fill" id="drill-countdown-fill"></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button class="btn btn-accent btn-lg" id="btn-drill-toggle">▶ START DRILL</button>
+        <button class="btn btn-secondary btn-lg" id="btn-drill-skip">⏭ NEXT SHOT</button>
+      </div>
+    </div>
+
+    <!-- Drill Library Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 4px 8px;">
+      <span style="font-weight: 700; font-size: 0.95rem;">Permanent Drill Library</span>
+      <button class="btn btn-primary btn-sm" id="btn-open-creator">+ New Custom Drill</button>
+    </div>
+
+    <!-- Drill Cards -->
+    <div id="drill-library-list"></div>
+
+  </div>
+
+  <!-- Modal: Drill Creator -->
+  <div class="modal" id="creator-modal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="font-size: 1.15rem; color: var(--primary);">Create Multi-Step Drill</h2>
+        <button class="btn btn-secondary" id="btn-close-modal">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label>Drill Title</label>
+        <input type="text" class="form-control" id="modal-drill-name" placeholder="e.g. Net Drop & Smash Recovery">
+      </div>
+
+      <div class="form-group">
+        <label>Rounds (0 = Continuous / Endless)</label>
+        <input type="number" class="form-control" id="modal-drill-rounds" value="10" min="0" max="100">
+      </div>
+
+      <div class="form-group">
+        <label>Steps in Sequence (in order of play)</label>
+        <div id="modal-steps-container"></div>
+      </div>
+
+      <!-- Add Step Form -->
+      <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 12px;">
+        <div class="form-group">
+          <label>Add Shot Type</label>
+          <select class="form-control" id="step-shot-type">
+            <option value="Front Net Drop (L)">Front Net Drop (Left Court)</option>
+            <option value="Front Net Drop (R)">Front Net Drop (Right Court)</option>
+            <option value="Mid-Court Drive (L)">Mid-Court Drive (Left)</option>
+            <option value="Mid-Court Drive (R)">Mid-Court Drive (Right)</option>
+            <option value="Rear Deep Clear (L)">Rear Deep Clear (Left Corner)</option>
+            <option value="Rear Deep Clear (R)">Rear Deep Clear (Right Corner)</option>
+            <option value="Steep Smash (Center)">Steep Smash (Center)</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <div class="form-group">
+            <label>Speed (1-20)</label>
+            <input type="number" class="form-control" id="step-speed" value="10" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label>Height (1-20)</label>
+            <input type="number" class="form-control" id="step-height" value="5" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label>Delay (sec)</label>
+            <input type="number" class="form-control" id="step-delay" value="2.5" step="0.5" min="1.0" max="10.0">
+          </div>
+        </div>
+
+        <button class="btn btn-secondary btn-full" id="btn-add-step-to-list">+ Add Shot Step</button>
+      </div>
+
+      <button class="btn btn-accent btn-full btn-lg" id="btn-save-custom-drill">
+        💾 Save Drill Permanently
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { 
+      SiboasiBleClient, 
+      buildFixedShotPacket, 
+      buildStopPacket, 
+      buildRandomPacket,
+      buildCrossLinePacket,
+      buildHorizontalPacket
+    } from './siboasi_protocol.js';
+
+    const client = new SiboasiBleClient();
+
+    // Machine Current State (Parameters)
+    const machineState = {
+      speed: 10,
+      height: 5,
+      horizontal: 30, // 30 is center
+      frequency: 3,
+      lift: 1,
+      mode: 'dingdian', // dingdian, suiji, shuiping, jiaocha, qianhou, sifang
+      targetPos: 5
+    };
+
+    // Default Preloaded Permanent Drills
+    const DEFAULT_DRILLS = [
+      {
+        id: 'drill-2-corner',
+        name: '2-Corner Agility (Drop & Clear)',
+        rounds: 10,
+        steps: [
+          { name: 'Front Net Drop (L)', speed: 8, height: 3, wait: 2.4, pos: 1 },
+          { name: 'Rear Deep Clear (R)', speed: 16, height: 9, wait: 3.2, pos: 9 },
+          { name: 'Front Net Drop (R)', speed: 8, height: 3, wait: 2.4, pos: 3 },
+          { name: 'Rear Deep Clear (L)', speed: 16, height: 9, wait: 3.2, pos: 7 },
+        ]
+      },
+      {
+        id: 'drill-smash-recovery',
+        name: 'Smash Defense & Drive Recovery',
+        rounds: 8,
+        steps: [
+          { name: 'Steep Smash (Center)', speed: 18, height: 2, wait: 2.0, pos: 5 },
+          { name: 'Mid-Court Drive (R)', speed: 14, height: 5, wait: 2.2, pos: 6 },
+          { name: 'Mid-Court Drive (L)', speed: 14, height: 5, wait: 2.2, pos: 4 }
+        ]
+      },
+      {
+        id: 'drill-front-back',
+        name: 'Front-and-Back Attack Routine',
+        rounds: 10,
+        steps: [
+          { name: 'Front Net Drop', speed: 9, height: 3, wait: 2.2, pos: 2 },
+          { name: 'Rear Deep Clear', speed: 17, height: 8, wait: 3.0, pos: 8 }
+        ]
+      },
+      {
+        id: 'drill-4-corner',
+        name: 'Four-Corner Footwork Mastery',
+        rounds: 6,
+        steps: [
+          { name: 'Net Left', speed: 8, height: 3, wait: 2.5, pos: 1 },
+          { name: 'Deep Right', speed: 16, height: 9, wait: 3.0, pos: 9 },
+          { name: 'Net Right', speed: 8, height: 3, wait: 2.5, pos: 3 },
+          { name: 'Deep Left', speed: 16, height: 9, wait: 3.0, pos: 7 }
+        ]
+      }
+    ];
+
+    // Local Storage
+    function getDrills() {
+      const saved = localStorage.getItem('siboasi_saved_drills_pro');
+      if (!saved) {
+        localStorage.setItem('siboasi_saved_drills_pro', JSON.stringify(DEFAULT_DRILLS));
+        return DEFAULT_DRILLS;
+      }
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return DEFAULT_DRILLS;
+      }
+    }
+
+    function saveDrills(drills) {
+      localStorage.setItem('siboasi_saved_drills_pro', JSON.stringify(drills));
+      renderDrillLibrary();
+    }
+
+    // UI Bindings - Top Bar
+    const btnConnect = document.getElementById('btn-connect');
+    const statusDot = document.getElementById('status-dot');
+    const connSubtext = document.getElementById('conn-subtext');
+    const btnStop = document.getElementById('btn-stop');
+
+    // UI Bindings - Tabs
+    const tabBtnMachine = document.getElementById('tab-btn-machine');
+    const tabBtnDrills = document.getElementById('tab-btn-drills');
+    const tabPageMachine = document.getElementById('tab-page-machine');
+    const tabPageDrills = document.getElementById('tab-page-drills');
+
+    tabBtnMachine.addEventListener('click', () => {
+      tabBtnMachine.classList.add('active');
+      tabBtnDrills.classList.remove('active');
+      tabPageMachine.classList.add('active');
+      tabPageDrills.classList.remove('active');
+    });
+
+    tabBtnDrills.addEventListener('click', () => {
+      tabBtnDrills.classList.add('active');
+      tabBtnMachine.classList.remove('active');
+      tabPageDrills.classList.add('active');
+      tabPageMachine.classList.remove('active');
+    });
+
+    // BLE Status Callbacks
+    client.onStatusChange = ({ state, message, battery }) => {
+      connSubtext.textContent = message;
+      statusDot.className = 'status-dot ' + state;
+      btnConnect.textContent = client.isConnected ? 'Disconnect' : 'Connect';
+      if (battery !== null && battery !== undefined) {
+        document.getElementById('battery-indicator').textContent = `🔋 Battery: ${battery}%`;
+      }
+    };
+
+    btnConnect.addEventListener('click', async () => {
+      if (client.isConnected) {
+        await client.disconnect();
+      } else {
+        try {
+          await client.connect();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+    });
+
+    btnStop.addEventListener('click', async () => {
+      stopDrill();
+      try {
+        await client.emergencyStop();
+      } catch (e) {
+        console.warn("Stop command error:", e);
+      }
+    });
+
+    // Parameter Steppers
+    function updateParamDisplays() {
+      document.getElementById('sd-val').textContent = `${machineState.speed} / 20`;
+      document.getElementById('cz-val').textContent = `${machineState.height} / 20`;
+      
+      const spLabels = { 15: 'Far Left (15)', 22: 'Left (22)', 30: 'Center (30)', 38: 'Right (38)', 45: 'Far Right (45)' };
+      document.getElementById('sp-val').textContent = spLabels[machineState.horizontal] || `${machineState.horizontal}`;
+      
+      document.getElementById('pl-val').textContent = `${machineState.frequency}.0s`;
+      document.getElementById('sj-val').textContent = `Level ${machineState.lift}`;
+    }
+
+    async function pushCurrentMachineCommand() {
+      if (!client.isConnected) return;
+      try {
+        if (machineState.mode === 'suiji') {
+          await client.sendRandom(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
+        } else if (machineState.mode === 'shuiping') {
+          await client.sendHorizontal(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
+        } else if (machineState.mode === 'jiaocha') {
+          await client.sendCrossLine(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
+        } else {
+          await client.sendFixedShot(machineState.horizontal, machineState.height, machineState.speed, machineState.frequency, machineState.lift);
+        }
+      } catch (e) {
+        console.error("BLE Send failed:", e);
+      }
+    }
+
+    // Stepper Handlers
+    document.getElementById('sd-add').addEventListener('click', () => {
+      if (machineState.speed < 20) { machineState.speed++; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('sd-sub').addEventListener('click', () => {
+      if (machineState.speed > 1) { machineState.speed--; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('cz-add').addEventListener('click', () => {
+      if (machineState.height < 20) { machineState.height++; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('cz-sub').addEventListener('click', () => {
+      if (machineState.height > 1) { machineState.height--; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('sp-add').addEventListener('click', () => {
+      if (machineState.horizontal < 50) { machineState.horizontal += 7; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('sp-sub').addEventListener('click', () => {
+      if (machineState.horizontal > 10) { machineState.horizontal -= 7; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('pl-add').addEventListener('click', () => {
+      if (machineState.frequency < 6) { machineState.frequency += 1; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('pl-sub').addEventListener('click', () => {
+      if (machineState.frequency > 1) { machineState.frequency -= 1; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('sj-add').addEventListener('click', () => {
+      if (machineState.lift < 3) { machineState.lift += 1; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+    document.getElementById('sj-sub').addEventListener('click', () => {
+      if (machineState.lift > 1) { machineState.lift -= 1; updateParamDisplays(); pushCurrentMachineCommand(); }
+    });
+
+    // Preset Mode Buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        machineState.mode = btn.dataset.mode;
+        document.getElementById('active-mode-label').textContent = `Mode: ${btn.querySelector('span:last-child').textContent}`;
+        pushCurrentMachineCommand();
+      });
+    });
+
+    document.getElementById('btn-machine-feed').addEventListener('click', () => {
+      pushCurrentMachineCommand();
+    });
+
+    document.getElementById('btn-machine-pause').addEventListener('click', async () => {
+      if (client.isConnected) await client.emergencyStop();
+    });
+
+    // Court Grid Selection
+    document.querySelectorAll('.court-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        document.querySelectorAll('.court-cell').forEach(c => c.classList.remove('selected'));
+        cell.classList.add('selected');
+        const pos = parseInt(cell.dataset.pos);
+        machineState.targetPos = pos;
+        document.getElementById('selected-court-pos').textContent = `Position: ${cell.textContent.trim()}`;
+        // Map grid position to horizontal and height
+        machineState.horizontal = pos % 3 === 1 ? 18 : (pos % 3 === 0 ? 42 : 30);
+        machineState.height = pos <= 3 ? 3 : (pos <= 6 ? 6 : 9);
+        updateParamDisplays();
+        pushCurrentMachineCommand();
+      });
+    });
+
+    // ==============================================================
+    // DRILL SEQUENCER ENGINE (Custom Multi-Step Routines)
+    // ==============================================================
+    let activeDrill = DEFAULT_DRILLS[0];
+    let drillStepIdx = 0;
+    let drillRound = 1;
+    let isDrillRunning = false;
+    let drillTimer = null;
+    let newDrillSteps = [];
+
+    const btnDrillToggle = document.getElementById('btn-drill-toggle');
+    const btnDrillSkip = document.getElementById('btn-drill-skip');
+    const activeDrillName = document.getElementById('active-drill-name');
+    const drillRoundCounter = document.getElementById('drill-round-counter');
+    const activeStepTitle = document.getElementById('active-step-title');
+    const activeStepDetails = document.getElementById('active-step-details');
+    const drillCountdownFill = document.getElementById('drill-countdown-fill');
+    const drillLibraryList = document.getElementById('drill-library-list');
+
+    async function executeDrillStep() {
+      if (!isDrillRunning || !activeDrill || activeDrill.steps.length === 0) return;
+
+      const step = activeDrill.steps[drillStepIdx];
+
+      activeStepTitle.textContent = `Shot ${drillStepIdx + 1}/${activeDrill.steps.length}: ${step.name}`;
+      activeStepDetails.textContent = `Speed: ${step.speed} • Height: ${step.height} • Delay: ${step.wait}s`;
+      drillRoundCounter.textContent = `Round ${drillRound} / ${activeDrill.rounds || '∞'}`;
+
+      // Highlight court grid cell
+      document.querySelectorAll('.court-cell').forEach(c => {
+        c.classList.remove('current-target');
+        if (parseInt(c.dataset.pos) === (step.pos || 5)) {
+          c.classList.add('current-target');
+        }
+      });
+
+      // Send to B2202A
+      if (client.isConnected) {
+        const horiz = step.pos ? (step.pos % 3 === 1 ? 18 : (step.pos % 3 === 0 ? 42 : 30)) : 30;
+        await client.sendFixedShot(horiz, step.height, step.speed, 3, 1);
+      }
+
+      // Countdown visual
+      drillCountdownFill.style.transition = 'none';
+      drillCountdownFill.style.width = '0%';
+      setTimeout(() => {
+        drillCountdownFill.style.transition = `width ${step.wait}s linear`;
+        drillCountdownFill.style.width = '100%';
+      }, 50);
+
+      // Next step timeout
+      drillTimer = setTimeout(() => {
+        drillStepIdx++;
+        if (drillStepIdx >= activeDrill.steps.length) {
+          drillStepIdx = 0;
+          drillRound++;
+          if (activeDrill.rounds && drillRound > activeDrill.rounds) {
+            stopDrill();
+            alert("🎉 Drill finished!");
+            return;
+          }
+        }
+        executeDrillStep();
+      }, (step.wait || 2.5) * 1000);
+    }
+
+    function startDrill() {
+      isDrillRunning = true;
+      btnDrillToggle.textContent = '⏸ PAUSE DRILL';
+      btnDrillToggle.className = 'btn btn-warning btn-lg';
+      executeDrillStep();
+    }
+
+    function stopDrill() {
+      isDrillRunning = false;
+      if (drillTimer) clearTimeout(drillTimer);
+      btnDrillToggle.textContent = '▶ START DRILL';
+      btnDrillToggle.className = 'btn btn-accent btn-lg';
+      drillCountdownFill.style.width = '0%';
+    }
+
+    btnDrillToggle.addEventListener('click', () => {
+      if (isDrillRunning) stopDrill();
+      else startDrill();
+    });
+
+    btnDrillSkip.addEventListener('click', () => {
+      if (drillTimer) clearTimeout(drillTimer);
+      drillStepIdx = (drillStepIdx + 1) % activeDrill.steps.length;
+      if (isDrillRunning) executeDrillStep();
+    });
+
+    function renderDrillLibrary() {
+      const drills = getDrills();
+      drillLibraryList.innerHTML = '';
+      drills.forEach(d => {
+        const card = document.createElement('div');
+        card.className = 'drill-card';
+        card.innerHTML = `
+          <div>
+            <h3>${d.name}</h3>
+            <p>${d.steps.length} shots • ${d.rounds ? d.rounds + ' rounds' : 'Endless loop'}</p>
+          </div>
+          <button class="btn btn-accent btn-load" data-id="${d.id}">▶ Load</button>
+        `;
+        card.querySelector('.btn-load').addEventListener('click', () => {
+          stopDrill();
+          activeDrill = d;
+          drillStepIdx = 0;
+          drillRound = 1;
+          activeDrillName.textContent = d.name;
+          activeStepTitle.textContent = d.steps[0].name;
+          startDrill();
+        });
+        drillLibraryList.appendChild(card);
+      });
+    }
+
+    // Creator Modal
+    const creatorModal = document.getElementById('creator-modal');
+    document.getElementById('btn-open-creator').addEventListener('click', () => {
+      newDrillSteps = [];
+      renderModalSteps();
+      creatorModal.style.display = 'block';
+    });
+    document.getElementById('btn-close-modal').addEventListener('click', () => {
+      creatorModal.style.display = 'none';
+    });
+
+    document.getElementById('btn-add-step-to-list').addEventListener('click', () => {
+      const type = document.getElementById('step-shot-type').value;
+      const speed = parseInt(document.getElementById('step-speed').value) || 10;
+      const height = parseInt(document.getElementById('step-height').value) || 5;
+      const wait = parseFloat(document.getElementById('step-delay').value) || 2.5;
+
+      const posMap = {
+        'Front Net Drop (L)': 1,
+        'Front Net Drop (R)': 3,
+        'Mid-Court Drive (L)': 4,
+        'Mid-Court Drive (R)': 6,
+        'Rear Deep Clear (L)': 7,
+        'Rear Deep Clear (R)': 9,
+        'Steep Smash (Center)': 5
+      };
+
+      newDrillSteps.push({
+        name: type,
+        speed,
+        height,
+        wait,
+        pos: posMap[type] || 5
+      });
+      renderModalSteps();
+    });
+
+    function renderModalSteps() {
+      const container = document.getElementById('modal-steps-container');
+      container.innerHTML = '';
+      newDrillSteps.forEach((st, i) => {
+        const item = document.createElement('div');
+        item.className = 'step-item';
+        item.innerHTML = `
+          <span><b>#${i+1}</b> ${st.name} (Speed: ${st.speed}, Height: ${st.height}, ${st.wait}s)</span>
+          <button class="btn btn-danger btn-sm" data-idx="${i}">✕</button>
+        `;
+        item.querySelector('button').addEventListener('click', () => {
+          newDrillSteps.splice(i, 1);
+          renderModalSteps();
+        });
+        container.appendChild(item);
+      });
+    }
+
+    document.getElementById('btn-save-custom-drill').addEventListener('click', () => {
+      const name = document.getElementById('modal-drill-name').value.trim();
+      const rounds = parseInt(document.getElementById('modal-drill-rounds').value) || 10;
+      if (!name) { alert("Please provide a drill title!"); return; }
+      if (newDrillSteps.length === 0) { alert("Please add at least 1 shot to the drill!"); return; }
+
+      const drills = getDrills();
+      drills.push({
+        id: 'drill-' + Date.now(),
+        name,
+        rounds,
+        steps: [...newDrillSteps]
+      });
+      saveDrills(drills);
+      creatorModal.style.display = 'none';
+      alert(`✅ Custom drill '${name}' saved permanently to your device!`);
+    });
+
+    // Init
+    updateParamDisplays();
+    renderDrillLibrary();
+  </script>
+</body>
+</html>
