@@ -915,6 +915,15 @@
       }
 
       async sendPacket(uint8Array) {
+        // Relay to local sync server (for split-screen / phone-to-PC testing)
+        try {
+          fetch('/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bytes: Array.from(uint8Array) })
+          }).catch(() => {});
+        } catch (_) {}
+
         if (this.isVirtualMode || !this.isConnected) {
           if (window.virtualFeeder) {
             window.virtualFeeder.receivePacket(uint8Array);
