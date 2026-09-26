@@ -412,6 +412,13 @@
     </div>
   </header>
 
+  <!-- Browser Compatibility Notice (Auto-detected) -->
+  <div id="browser-warning" style="display:none; background:#7f1d1d; border:1px solid #ef4444; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:0.88rem; color:#fee2e2; line-height:1.4;">
+    <div style="font-weight:700; margin-bottom:4px;">⚠️ Bluetooth Disabled in This Browser</div>
+    You are using a browser that does not allow Bluetooth (e.g. Samsung Internet / In-App Browser).<br>
+    Please tap the <b>⋮ menu</b> and choose <b>"Open in Chrome"</b>, or copy the link into <b>Google Chrome</b>.
+  </div>
+
   <!-- Big Emergency Stop Button -->
   <div class="emergency-bar">
     <button class="btn btn-danger btn-lg btn-full" id="btn-stop">
@@ -651,17 +658,219 @@
     </div>
   </div>
 
-  <script type="module">
-    import { 
-      SiboasiBleClient, 
-      buildFixedShotPacket, 
-      buildStopPacket, 
-      buildRandomPacket,
-      buildCrossLinePacket,
-      buildHorizontalPacket
-    } from './siboasi_protocol.js';
+  <script>
+    // ==============================================================
+    // SIBOASI BLE PROTOCOL ENGINE (Self-Contained Mobile Driver)
+    // ==============================================================
+    const SIBOASI_BLE_CONFIG = {
+      DEVICE_PREFIX: 'SS-B2202A',
+      SERVICE_UUID: '0000ff12-0000-1000-8000-00805f9b34fb',
+      SERVICE_UUID_SHORT: 0xff12,
+      WRITE_CHAR_UUID: '0000ff01-0000-1000-8000-00805f9b34fb',
+      WRITE_CHAR_UUID_SHORT: 0xff01,
+      NOTIFY_CHAR_UUID: '0000ff02-0000-1000-8000-00805f9b34fb',
+      NOTIFY_CHAR_UUID_SHORT: 0xff02,
+    };
+
+    const SIBOASI_OPCODES = {
+      STOP: 0xA0,
+      PAUSE_RESUME: 0xA0,
+      FIXED_SHOT: 0xAB,
+      CUSTOM_SEQUENCE: 0xAA,
+      RANDOM: 0xA8,
+      CROSS_LINE: 0xAF,
+      HORIZONTAL: 0xAD,
+      COMBINATION: 0xA4,
+      READ_BATTERY: 0xC1,
+    };
+
+    function buildSiboasiPacket(opcode, payloadBytes = []) {
+      const totalLen = 8 + 1 + payloadBytes.length + 3;
+      const packet = new Uint8Array(totalLen);
+      packet[0] = 0xEF;
+      packet[1] = totalLen;
+      packet[2] = Math.floor(Math.random() * 255);
+      packet[3] = Math.floor(Math.random() * 255);
+      packet[4] = 0x04;
+      packet[5] = 0x81;
+      packet[6] = 0x01;
+      packet[7] = payloadBytes.length + 1;
+      packet[8] = opcode;
+      for (let i = 0; i < payloadBytes.length; i++) {
+        packet[9 + i] = payloadBytes[i] & 0xFF;
+      }
+      packet[totalLen - 3] = 0x00;
+      packet[totalLen - 2] = 0x00;
+      packet[totalLen - 1] = 0xED;
+      return packet;
+    }
+
+    function buildStopPacket() { return buildSiboasiPacket(SIBOASI_OPCODES.STOP, []); }
+    function buildBatteryQueryPacket() { return buildSiboasiPacket(SIBOASI_OPCODES.READ_BATTERY, []); }
+
+    function buildFixedShotPacket(horizontal = 30, vertical = 5, speed = 10, frequency = 3, lift = 1) {
+      const comb = Math.abs(vertical * 16 + vertical) % 256;
+      return buildSiboasiPacket(SIBOASI_OPCODES.FIXED_SHOT, [horizontal, vertical, comb, speed, frequency, lift]);
+    }
+
+    function buildRandomPacket(horizontal = 30, vertical = 5, speed = 10, frequency = 3, lift = 1) {
+      const comb = Math.abs(vertical * 16 + vertical) % 256;
+      return buildSiboasiPacket(SIBOASI_OPCODES.RANDOM, [horizontal, 0xFF, 0xFF, comb, speed, frequency, lift]);
+    }
+
+    function buildCrossLinePacket(horizontal = 30, vertical = 5, speed = 10, frequency = 3, lift = 1) {
+      const comb = Math.abs(vertical * 16 + vertical) % 256;
+      return buildSiboasiPacket(SIBOASI_OPCODES.CROSS_LINE, [horizontal, comb, speed, frequency, lift]);
+    }
+
+    function buildHorizontalPacket(horizontal = 30, vertical = 5, speed = 10, frequency = 3, lift = 1) {
+      const comb = Math.abs(vertical * 16 + vertical) % 256;
+      return buildSiboasiPacket(SIBOASI_OPCODES.HORIZONTAL, [horizontal, vertical, comb, speed, frequency, lift]);
+    }
+
+    class SiboasiBleClient {
+      constructor() {
+        this.device = null;
+        this.server = null;
+        this.service = null;
+        this.writeChar = null;
+        this.notifyChar = null;
+        this.isConnected = false;
+        this.batteryLevel = null;
+        this.onStatusChange = null;
+      }
+
+      isSupported() {
+        return !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+      }
+
+      async connect() {
+        if (!this.isSupported()) {
+          throw new Error("Web Bluetooth is not supported on this browser. On Samsung/Android, please open this page in Google Chrome. On iPhone, open in the free Bluefy browser.");
+        }
+
+        this._updateStatus('connecting', 'Scanning for SS-B2202A...');
+
+        try {
+          this.device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [
+              SIBOASI_BLE_CONFIG.SERVICE_UUID,
+              SIBOASI_BLE_CONFIG.SERVICE_UUID_SHORT
+            ]
+          });
+        } catch (scanErr) {
+          if (scanErr.name === 'NotFoundError') {
+            throw new Error("No device selected. Please turn on your Siboasi machine and Bluetooth, then tap Connect again.");
+          }
+          // Fallback to name prefix filter if acceptAllDevices not allowed by policy
+          this.device = await navigator.bluetooth.requestDevice({
+            filters: [
+              { namePrefix: 'SS-' },
+              { namePrefix: 'SS-B2202A' },
+              { namePrefix: 'Siboasi' }
+            ],
+            optionalServices: [
+              SIBOASI_BLE_CONFIG.SERVICE_UUID,
+              SIBOASI_BLE_CONFIG.SERVICE_UUID_SHORT
+            ]
+          });
+        }
+
+        this.device.addEventListener('gattserverdisconnected', () => {
+          this.isConnected = false;
+          this._updateStatus('disconnected', 'Machine disconnected');
+        });
+
+        this._updateStatus('connecting', `Connecting to ${this.device.name || 'machine'}...`);
+        this.server = await this.device.gatt.connect();
+
+        try {
+          this.service = await this.server.getPrimaryService(SIBOASI_BLE_CONFIG.SERVICE_UUID);
+        } catch {
+          this.service = await this.server.getPrimaryService(SIBOASI_BLE_CONFIG.SERVICE_UUID_SHORT);
+        }
+
+        try {
+          this.writeChar = await this.service.getCharacteristic(SIBOASI_BLE_CONFIG.WRITE_CHAR_UUID);
+        } catch {
+          this.writeChar = await this.service.getCharacteristic(SIBOASI_BLE_CONFIG.WRITE_CHAR_UUID_SHORT);
+        }
+
+        try {
+          this.notifyChar = await this.service.getCharacteristic(SIBOASI_BLE_CONFIG.NOTIFY_CHAR_UUID);
+          await this.notifyChar.startNotifications();
+          this.notifyChar.addEventListener('characteristicvaluechanged', (e) => {
+            const val = new Uint8Array(e.target.value.buffer);
+            if (val.length >= 10 && val[8] === 0xC1) {
+              this.batteryLevel = val[9];
+              if (this.onStatusChange) {
+                this.onStatusChange({
+                  state: 'connected',
+                  message: `Connected (${this.device.name || 'SS-B2202A'})`,
+                  battery: this.batteryLevel
+                });
+              }
+            }
+          });
+        } catch (e) {
+          console.warn("Notifications optional:", e);
+        }
+
+        this.isConnected = true;
+        this._updateStatus('connected', `Connected: ${this.device.name || 'SS-B2202A'}`);
+
+        setTimeout(() => this.queryBattery().catch(() => {}), 800);
+        return this.device.name;
+      }
+
+      async disconnect() {
+        if (this.device && this.device.gatt.connected) {
+          await this.device.gatt.disconnect();
+        }
+        this.isConnected = false;
+        this._updateStatus('disconnected', 'Disconnected');
+      }
+
+      async sendPacket(uint8Array) {
+        if (!this.isConnected || !this.writeChar) {
+          throw new Error("Not connected to machine!");
+        }
+        if (this.writeChar.writeValueWithoutResponse) {
+          await this.writeChar.writeValueWithoutResponse(uint8Array);
+        } else {
+          await this.writeChar.writeValue(uint8Array);
+        }
+      }
+
+      async emergencyStop() { await this.sendPacket(buildStopPacket()); }
+      async queryBattery() { await this.sendPacket(buildBatteryQueryPacket()); }
+      async sendFixedShot(h, v, s, f, l = 1) { await this.sendPacket(buildFixedShotPacket(h, v, s, f, l)); }
+      async sendRandom(h, v, s, f, l = 1) { await this.sendPacket(buildRandomPacket(h, v, s, f, l)); }
+      async sendCrossLine(h, v, s, f, l = 1) { await this.sendPacket(buildCrossLinePacket(h, v, s, f, l)); }
+      async sendHorizontal(h, v, s, f, l = 1) { await this.sendPacket(buildHorizontalPacket(h, v, s, f, l)); }
+
+      _updateStatus(state, message) {
+        if (this.onStatusChange) {
+          this.onStatusChange({ 
+            state, 
+            message, 
+            deviceName: this.device ? this.device.name : null,
+            battery: this.batteryLevel
+          });
+        }
+      }
+    }
 
     const client = new SiboasiBleClient();
+
+    // Auto-detect browser support on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!client.isSupported()) {
+        const warn = document.getElementById('browser-warning');
+        if (warn) warn.style.display = 'block';
+      }
+    });
 
     // Machine Current State (Parameters)
     const machineState = {
